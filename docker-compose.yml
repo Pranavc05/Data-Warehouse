@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: autosql_postgres
+    environment:
+      POSTGRES_DB: autosql_warehouse
+      POSTGRES_USER: autosql_user
+      POSTGRES_PASSWORD: autosql_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      - autosql_network
+
+  # Redis for Caching & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: autosql_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - autosql_network
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: autosql_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - autosql_network
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: autosql_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    networks:
+      - autosql_network
+
+  # Main Application
+  app:
+    build: .
+    container_name: autosql_app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://autosql_user:autosql_password@postgres:5432/autosql_warehouse
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app
+    networks:
+      - autosql_network
+
+  # Streamlit Dashboard
+  dashboard:
+    build: .
+    container_name: autosql_dashboard
+    command: streamlit run dashboard/main.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      DATABASE_URL: postgresql://autosql_user:autosql_password@postgres:5432/autosql_warehouse
+    depends_on:
+      - postgres
+      - app
+    volumes:
+      - .:/app
+    networks:
+      - autosql_network
+
+volumes:
+  postgres_data:
+  grafana_data:
+
+networks:
+  autosql_network:
+    driver: bridge
