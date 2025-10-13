@@ -53,7 +53,7 @@ class GmailEmailService:
         # Beautiful email templates
         self.templates = {
             EmailTemplate.EMAIL_VERIFICATION: {
-                "subject": "🚀 Verify Your AutoSQL Account - Free Data Engineering Platform!",
+                "subject": "🚀 Verify Your DataForge Account - Free Data Engineering Platform!",
                 "html": """
                 <!DOCTYPE html>
                 <html>
@@ -91,7 +91,7 @@ class GmailEmailService:
                 <body>
                     <div class="container">
                         <div class="header">
-                            <h1>🚀 Welcome to AutoSQL!</h1>
+                            <h1>🚀 Welcome to DataForge!</h1>
                             <p>Intelligent Data Warehouse Orchestrator</p>
                         </div>
                         
@@ -126,7 +126,7 @@ class GmailEmailService:
                         </div>
                         
                         <div class="footer">
-                            <p><strong>AutoSQL - Intelligent Data Warehouse Orchestrator</strong></p>
+                            <p><strong>DataForge - Intelligent Data Warehouse Orchestrator</strong></p>
                             <p>Built with ❤️ for the Autodesk Data Engineering Team</p>
                             <p>🎯 Demonstrating enterprise SQL + AI mastery</p>
                         </div>
@@ -135,7 +135,7 @@ class GmailEmailService:
                 </html>
                 """,
                 "text": """
-                🚀 Welcome to AutoSQL - Intelligent Data Warehouse Orchestrator!
+                🚀 Welcome to DataForge - Intelligent Data Warehouse Orchestrator!
                 
                 Hello {username}!
                 
@@ -183,7 +183,7 @@ class GmailEmailService:
         """Send security alert email"""
         message = EmailMessage(
             to=email,
-            subject="🚨 AutoSQL Security Alert",
+            subject="🚨 DataForge Security Alert",
             html_content=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; text-align: center;">

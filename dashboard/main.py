@@ -15,7 +15,7 @@ import asyncpg
 
 # Page config
 st.set_page_config(
-    page_title="🚀 Intelligent Data Warehouse Orchestrator",
+    page_title="🚀 DataForge - Intelligent Data Platform",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -57,12 +57,12 @@ st.markdown("""
 
 def main():
     # Header
-    st.markdown('<h1 class="main-header">🚀 Intelligent Data Warehouse Orchestrator</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🚀 DataForge</h1>', unsafe_allow_html=True)
     st.markdown('<p style="text-align: center; font-size: 1.2rem; color: #666;">AI-Powered SQL Optimization & Advanced Analytics Platform</p>', unsafe_allow_html=True)
     
     # Sidebar
     with st.sidebar:
-        st.image("https://via.placeholder.com/300x100/1f77b4/white?text=AutoSQL", caption="AI-Powered Data Platform")
+        st.image("https://via.placeholder.com/300x100/1f77b4/white?text=DataForge", caption="Intelligent Data Platform")
         
         st.markdown("### 🎯 Demo Features")
         st.markdown("""
@@ -558,7 +558,7 @@ def render_demo_showcase():
     
     st.markdown("""
     <div class="success-box">
-        <h2>🚀 Welcome to the Ultimate SQL + AI Demo!</h2>
+        <h2>🚀 Welcome to DataForge - The Ultimate AI-Powered Data Platform!</h2>
         <p>This project demonstrates enterprise-grade data engineering skills and advanced AI integration.</p>
     </div>
     """, unsafe_allow_html=True)

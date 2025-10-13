@@ -90,7 +90,7 @@ class SentryErrorMonitoring:
             # Test Sentry connection
             with sentry_sdk.configure_scope() as scope:
                 scope.set_tag("test", "initialization")
-                sentry_sdk.capture_message("AutoSQL Error Monitoring System Started", level="info")
+                sentry_sdk.capture_message("DataForge Error Monitoring System Started", level="info")
                 
         except Exception as e:
             logger.error(f"❌ Failed to initialize Sentry: {e}")

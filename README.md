@@ -1,6 +1,6 @@
-# 🚀 Intelligent Data Warehouse Orchestrator
+# 🚀 DataForge - Intelligent Data Warehouse Orchestrator
 
-An advanced AI-powered data warehouse management system that automatically optimizes SQL queries, manages schema evolution, and provides intelligent cost optimization recommendations.
+DataForge is an advanced AI-powered data warehouse management system that automatically optimizes SQL queries, manages schema evolution, and provides intelligent cost optimization recommendations.
 
 ## 🎯 Key Features
 
@@ -44,7 +44,7 @@ An advanced AI-powered data warehouse management system that automatically optim
 ```bash
 # Clone and setup
 git clone <repo>
-cd AutoSQL
+cd DataForge
 
 # Install dependencies
 pip install -r requirements.txt

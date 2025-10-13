@@ -34,7 +34,7 @@ async def initialize_database():
         conn = await asyncpg.connect(DATABASE_URL)
         
         # Read and execute schema files
-        with open('/Users/chandrasekhargopal/AutoSQL/sql/schemas/advanced_warehouse_schema.sql', 'r') as f:
+        with open('/Users/chandrasekhargopal/DataForge/sql/schemas/advanced_warehouse_schema.sql', 'r') as f:
             schema_sql = f.read()
         
         logger.info("🏗️ Executing advanced schema creation...")
@@ -42,7 +42,7 @@ async def initialize_database():
         logger.info("✅ Advanced schema created")
         
         # Load sample data
-        with open('/Users/chandrasekhargopal/AutoSQL/sql/schemas/sample_data.sql', 'r') as f:
+        with open('/Users/chandrasekhargopal/DataForge/sql/schemas/sample_data.sql', 'r') as f:
             sample_data_sql = f.read()
         
         logger.info("📈 Loading sample data...")

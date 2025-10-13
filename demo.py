@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🚀 AutoSQL Live Demo - Proving the System Works!
+🚀 DataForge Live Demo - Proving the System Works!
 This is a simplified demo showing core functionality.
 """
 
@@ -14,7 +14,7 @@ import json
 # Load environment variables
 load_dotenv()
 
-class AutoSQLDemo:
+class DataForgeDemo:
     def __init__(self):
         self.openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.db_connection = None
@@ -142,7 +142,7 @@ Content: {json.dumps(alert, indent=2)}
         ai_status = self.test_ai_integration()
         
         # If basic components work, show advanced features
-        if db_status and ai_status:
+        if self._is_connected and ai_status:
             self.demo_sql_analysis()
             self.demo_streaming_mode()
             self.demo_email_system()
@@ -155,7 +155,7 @@ Content: {json.dumps(alert, indent=2)}
             print("✅ Email System: Alert Notifications (Mock)")
             print("✅ Authentication: JWT Security Ready")
             print("✅ Monitoring: Performance Tracking Active")
-            print("\n🎯 THIS SYSTEM IS DEMO-READY FOR AUTODESK!")
+            print("\n🎯 DATAFORGE IS DEMO-READY FOR ANY INTERVIEW!")
         else:
             print("\n❌ Demo failed - check configuration")
         
@@ -164,5 +164,5 @@ Content: {json.dumps(alert, indent=2)}
             self.db_connection.close()
 
 if __name__ == "__main__":
-    demo = AutoSQLDemo()
+    demo = DataForgeDemo()
     demo.run_demo()

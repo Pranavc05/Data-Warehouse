@@ -11,7 +11,7 @@ import time
 
 def main():
     print("""
-🚀 AUTOSQL DEMO LAUNCHER
+🚀 DATAFORGE DEMO LAUNCHER
 ========================
 
 Choose your demo format:
@@ -74,7 +74,7 @@ def launch_jupyter_demo():
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "# 🚀 AutoSQL: AI-Powered Data Warehouse\\n",
+    "# 🚀 DataForge: AI-Powered Data Warehouse\\n",
     "## Advanced SQL + AI Demo for Technical Interviews"
    ]
   },
@@ -87,10 +87,10 @@ def launch_jupyter_demo():
     "# Import libraries\\n",
     "import pandas as pd\\n",
     "import numpy as np\\n",
-    "from demo import AutoSQLDemo\\n",
+    "from demo import DataForgeDemo\\n",
     "\\n",
-    "print('🤖 AutoSQL System Ready!')\\n",
-    "demo = AutoSQLDemo()"
+    "print('🤖 DataForge System Ready!')\\n",
+    "demo = DataForgeDemo()"
    ]
   }
  ],
@@ -105,11 +105,11 @@ def launch_jupyter_demo():
  "nbformat_minor": 4
 }'''
     
-    with open('AutoSQL_Demo.ipynb', 'w') as f:
+    with open('DataForge_Demo.ipynb', 'w') as f:
         f.write(notebook_content)
     
-    print("📊 Jupyter notebook created: AutoSQL_Demo.ipynb")
-    print("💡 Run: jupyter notebook AutoSQL_Demo.ipynb")
+    print("📊 Jupyter notebook created: DataForge_Demo.ipynb")
+    print("💡 Run: jupyter notebook DataForge_Demo.ipynb")
 
 def launch_all_demos():
     print("🎯 Launching ALL DEMOS...")
@@ -126,7 +126,7 @@ def launch_all_demos():
     print("""
 🌐 Web Dashboard: http://localhost:8501
 🖥️  Terminal Demo: Run 'python3 demo.py' in another terminal
-📊 Jupyter Demo: Run 'jupyter notebook AutoSQL_Demo.ipynb'
+📊 Jupyter Demo: Run 'jupyter notebook DataForge_Demo.ipynb'
     """)
 
 if __name__ == "__main__":
