@@ -86,6 +86,21 @@ METRICS_PORT = int(os.getenv("METRICS_PORT", "8080"))
 HEALTH_CHECK_INTERVAL = int(os.getenv("HEALTH_CHECK_INTERVAL", "30"))  # seconds
 ALERT_COOLDOWN = int(os.getenv("ALERT_COOLDOWN", "300"))  # seconds
 
+# =============================================================================
+# 🌊 KAFKA STREAMING CONFIGURATION
+# =============================================================================
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+
+# =============================================================================
+# 📧 EMAIL SERVICE CONFIGURATION  
+# =============================================================================
+GMAIL_EMAIL = os.getenv("GMAIL_EMAIL", "")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
+
+# Legacy Mailgun support (optional)
+MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY", "")
+MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN", "")
+
 # Logging configuration
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 

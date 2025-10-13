@@ -83,9 +83,18 @@ class KafkaStreamProcessor:
         # Event handlers
         self.event_handlers = {}
         
+        # Mock mode for demo (when Kafka unavailable)
+        self.mock_mode = False
+        
     async def initialize(self):
         """Initialize Kafka producer and create topics"""
         try:
+            # Check if Kafka is available
+            if not await self._is_kafka_available():
+                logger.warning("🚨 Kafka not available - using MOCK STREAMING MODE for demo")
+                self.mock_mode = True
+                return True
+            
             # Initialize producer
             self.producer = KafkaProducer(
                 bootstrap_servers=[self.bootstrap_servers],
@@ -142,9 +151,39 @@ class KafkaStreamProcessor:
         except Exception as e:
             logger.error(f"❌ Failed to create Kafka topics: {e}")
     
+    async def _is_kafka_available(self) -> bool:
+        """Check if Kafka is available"""
+        try:
+            # Simple connection test
+            from kafka.admin import KafkaAdminClient
+            admin_client = KafkaAdminClient(
+                bootstrap_servers=[self.bootstrap_servers],
+                client_id='autosql_test',
+                request_timeout_ms=5000
+            )
+            admin_client.list_topics()
+            return True
+        except Exception as e:
+            logger.debug(f"Kafka not available: {e}")
+            return False
+    
     async def publish_event(self, event: StreamEvent) -> bool:
         """Publish event to appropriate Kafka topic"""
         try:
+            # Mock mode for demo
+            if self.mock_mode:
+                logger.info(f"""
+                🌊 [MOCK STREAMING] Event Published:
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                Event: {event.event_type.value}
+                ID: {event.event_id}
+                Source: {event.source}
+                Data: {json.dumps(event.data, indent=2)[:200]}...
+                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                ✅ Event would be streamed successfully!
+                """)
+                return True
+            
             if not self.producer:
                 logger.error("Kafka producer not initialized")
                 return False
