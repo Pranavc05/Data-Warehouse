@@ -62,7 +62,7 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        st.image("https://via.placeholder.com/300x100/1f77b4/white?text=AutoSQL", caption="Built for Autodesk Internship")
+        st.image("https://via.placeholder.com/300x100/1f77b4/white?text=AutoSQL", caption="AI-Powered Data Platform")
         
         st.markdown("### 🎯 Demo Features")
         st.markdown("""
@@ -554,12 +554,12 @@ def render_performance_dashboard():
 
 def render_demo_showcase():
     """Demo showcase for Autodesk presentation"""
-    st.markdown("### 🎯 Autodesk Internship Demo")
+    st.markdown("### 🎯 Professional Demo Showcase")
     
     st.markdown("""
     <div class="success-box">
         <h2>🚀 Welcome to the Ultimate SQL + AI Demo!</h2>
-        <p>This project demonstrates enterprise-grade data engineering skills perfect for Autodesk's Data Engineer Internship.</p>
+        <p>This project demonstrates enterprise-grade data engineering skills and advanced AI integration.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -678,8 +678,8 @@ def render_demo_showcase():
     # Call to action
     st.markdown("""
     <div class="success-box">
-        <h3>🎯 Ready for Autodesk!</h3>
-        <p>This project demonstrates all the key skills mentioned in the Data Engineer Internship posting:</p>
+        <h3>🎯 Enterprise-Ready Skills Showcase!</h3>
+        <p>This project demonstrates comprehensive data engineering capabilities:</p>
         <ul>
             <li>✅ <strong>Advanced SQL</strong> - Complex queries, optimization, analytics</li>
             <li>✅ <strong>Python Programming</strong> - Clean, efficient, enterprise-grade code</li>
