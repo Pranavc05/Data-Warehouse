@@ -11,12 +11,17 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Optional
+import json
+import re
 
 from src.database.connection import init_database, test_connection
 from src.database.models import Base
 from src.agents.query_optimizer import QueryOptimizationAgent
 from src.pipelines.etl_engine import AdvancedETLPipeline
 from src.monitoring.performance_monitor import PerformanceMonitor
+from src.database.connection import get_async_db
+from langchain.chains import LLMChain
+from fastapi.responses import JSONResponse
 
 # Configure logging
 logging.basicConfig(
@@ -38,6 +43,10 @@ class OptimizationResponse(BaseModel):
     suggestions_count: int
     average_improvement: float
     top_suggestions: List[Dict]
+
+class QueryOptimizationRequest(BaseModel):
+    sql: str
+    analyze: bool = False  # Use EXPLAIN by default; EXPLAIN ANALYZE when True
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -221,6 +230,109 @@ async def run_etl_pipeline(request: PipelineRunRequest, background_tasks: Backgr
         logger.error(f"Pipeline execution failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/optimize/query")
+async def optimize_single_query(request: QueryOptimizationRequest):
+    """
+    Accept a user SQL query, run EXPLAIN (or EXPLAIN ANALYZE if requested),
+    collect minimal schema context, and return AI-powered optimization suggestions.
+    """
+    sql = request.sql.strip().rstrip(";")
+
+    # Basic safety: block obviously destructive statements; allow the rest
+    if re.search(r"\\b(drop|alter|truncate)\\b", sql, flags=re.IGNORECASE):
+        raise HTTPException(status_code=400, detail="Destructive statements are not allowed.")
+
+    # Build EXPLAIN statement
+    explain_opts = ["FORMAT JSON"]
+    if request.analyze:
+        explain_opts.insert(0, "ANALYZE")
+        explain_opts.insert(1, "BUFFERS")
+    explain_prefix = f"EXPLAIN ({', '.join(explain_opts)}) "
+    explain_stmt = explain_prefix + sql
+
+    try:
+        async with get_async_db() as conn:
+            plan_rows = await conn.fetch(explain_stmt)
+            if not plan_rows:
+                raise HTTPException(status_code=500, detail="No plan returned from EXPLAIN.")
+            # asyncpg returns column name '?column?' for EXPLAIN JSON output
+            plan_raw = plan_rows[0].get("?column?", plan_rows[0][0])
+
+            # Collect simple schema context for referenced tables
+            tables = extract_tables_from_sql(sql)
+            schema_info = {}
+            for tbl in tables:
+                schema_info[tbl] = await fetch_table_schema(conn, tbl)
+
+        # Rule-based suggestions (always available)
+        rule_based = generate_rule_based_suggestions(plan_raw, sql, schema_info)
+
+        # LLM suggestions (best-effort, non-fatal) with JSON guard
+        ai_suggestions = None
+        ai_error = None
+        try:
+            optimizer = app.state.query_optimizer
+            chain = LLMChain(llm=optimizer.llm, prompt=optimizer.query_analysis_prompt)
+            result = await chain.apredict(
+                query=sql,
+                execution_plan=json.dumps(plan_raw, default=str),
+                performance_stats=json.dumps({"source": "explain_only", "analyze": request.analyze})
+            )
+            try:
+                ai_suggestions = json.loads(result)
+            except Exception as pe:
+                ai_suggestions = {"raw": result, "error": f"Failed to parse AI JSON: {pe}"}
+        except Exception as e:
+            ai_error = str(e)
+
+        suggestions = {
+            "ai": ai_suggestions if ai_suggestions is not None else {"error": ai_error or "AI not available"},
+            "rule_based": rule_based  # always present as safety net
+        }
+
+        return {
+            "query": sql,
+            "analyze": request.analyze,
+            "plan": plan_raw,
+            "schema": schema_info,
+            "suggestions": suggestions
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Query optimization failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/optimize/workload")
+async def get_recent_slow_queries(limit: int = 10):
+    """
+    Return recent slow queries from pg_stat_statements (mean_exec_time ordered).
+    Only SELECT/CTE queries are included; EXPLAIN entries are excluded.
+    """
+    sql = """
+    SELECT 
+        query,
+        mean_exec_time,
+        calls,
+        rows,
+        total_exec_time
+    FROM pg_stat_statements
+    WHERE query ILIKE 'select%%'
+      AND query NOT ILIKE 'explain%%'
+      AND query IS NOT NULL
+      AND mean_exec_time > 0
+    ORDER BY mean_exec_time DESC
+    LIMIT $1;
+    """
+    try:
+        async with get_async_db() as conn:
+            rows = await conn.fetch(sql, limit)
+            data = [dict(r) for r in rows]
+            return {"queries": data}
+    except Exception as e:
+        logger.error(f"Failed to fetch recent slow queries: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/analytics/dashboard-data")
 async def get_dashboard_data():
     """
@@ -344,6 +456,118 @@ async def background_monitoring(monitor: PerformanceMonitor):
         except Exception as e:
             logger.error(f"Background monitoring error: {e}")
             await asyncio.sleep(60)  # Wait longer on error
+
+
+# Helper utilities
+def extract_tables_from_sql(sql: str) -> List[str]:
+    """Basic table extraction from SQL (FROM/JOIN)."""
+    pattern = r"(?:FROM|JOIN)\\s+([\\w\\.]+)"
+    return [m.lower() for m in re.findall(pattern, sql, flags=re.IGNORECASE)]
+
+
+async def fetch_table_schema(conn, table_name: str) -> Dict:
+    """Fetch simple schema info (columns and indexes) for a table."""
+    columns = await conn.fetch(
+        """
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_name = $1
+        ORDER BY ordinal_position;
+        """,
+        table_name
+    )
+
+    indexes = await conn.fetch(
+        """
+        SELECT indexname, indexdef
+        FROM pg_indexes
+        WHERE tablename = $1;
+        """,
+        table_name
+    )
+
+    return {
+        "columns": [dict(r) for r in columns],
+        "indexes": [dict(r) for r in indexes],
+    }
+
+
+def generate_rule_based_suggestions(plan: Dict, sql: str, schema_info: Dict) -> Dict:
+    """
+    Minimal rule-based suggestions for demo reliability:
+    - Detect sequential scans and suggest indexes on filters / group by / order by.
+    - Provide simple JSON suggestions even if LLM is unavailable.
+    """
+    suggestions = {
+        "bottlenecks": [],
+        "index_suggestions": [],
+        "query_rewrites": [],
+        "notes": []
+    }
+
+    plan_text = json.dumps(plan).lower()
+
+    # Detect seq scan
+    if "seq scan" in plan_text:
+        suggestions["bottlenecks"].append("Sequential scan detected")
+
+    # Basic regex for WHERE/ORDER/GROUP columns
+    where_cols = re.findall(r"where\\s+([^;]+)", sql, flags=re.IGNORECASE)
+    order_cols = re.findall(r"order\\s+by\\s+([^;]+)", sql, flags=re.IGNORECASE)
+    group_cols = re.findall(r"group\\s+by\\s+([^;]+)", sql, flags=re.IGNORECASE)
+
+    def cols_from_clause(clause_text: str) -> List[str]:
+        if not clause_text:
+            return []
+        # split by commas and spaces, strip functions/parens
+        raw_parts = re.split(r",", clause_text)
+        cols = []
+        for part in raw_parts:
+            cleaned = re.sub(r"[^\\w\\.]", " ", part).strip()
+            if cleaned:
+                cols.append(cleaned.split()[-1])
+        return cols
+
+    where_columns = cols_from_clause(where_cols[0]) if where_cols else []
+    order_columns = cols_from_clause(order_cols[0]) if order_cols else []
+    group_columns = cols_from_clause(group_cols[0]) if group_cols else []
+
+    # Recommend index for filters
+    for col in where_columns:
+        suggestions["index_suggestions"].append({
+            "recommendation": f"Consider an index on filter column `{col}`",
+            "rationale": "Filter column used in WHERE; index can reduce scans",
+        })
+
+    # Recommend index for group by
+    for col in group_columns:
+        suggestions["index_suggestions"].append({
+            "recommendation": f"Consider index to support GROUP BY on `{col}`",
+            "rationale": "Grouping frequently benefits from indexed grouping keys",
+        })
+
+    # Recommend index for order by
+    for col in order_columns:
+        suggestions["index_suggestions"].append({
+            "recommendation": f"Consider index to support ORDER BY on `{col}`",
+            "rationale": "Ordering can use an index to avoid sort overhead",
+        })
+
+    # Simple rewrite note if selecting all columns
+    if re.search(r"select\\s+\\*", sql, flags=re.IGNORECASE):
+        suggestions["query_rewrites"].append(
+            "Avoid SELECT *; select only needed columns to reduce I/O."
+        )
+
+    # Add a generic improvement hint if no specific suggestion
+    if not suggestions["index_suggestions"] and "seq scan" in plan_text:
+        suggestions["index_suggestions"].append({
+            "recommendation": "Add an index on frequently filtered columns",
+            "rationale": "Sequential scan detected; indexing filters can reduce cost",
+        })
+
+    suggestions["notes"].append("Rule-based suggestions provided; LLM not invoked.")
+    return suggestions
 
 if __name__ == "__main__":
     import uvicorn

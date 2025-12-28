@@ -10,8 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
-import openai
-from langchain.llms import OpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.agents import initialize_agent, Tool, AgentType
@@ -56,10 +55,12 @@ class QueryOptimizationAgent:
     """
     
     def __init__(self):
-        self.llm = OpenAI(
+        self.llm = ChatOpenAI(
             model_name=AI_MODEL,
-            temperature=AI_TEMPERATURE,
-            openai_api_key=OPENAI_API_KEY
+
+            temperature=0,  # deterministic for reliability
+            openai_api_key=OPENAI_API_KEY,
+            timeout=20,
         )
         self.setup_prompts()
         self.setup_tools()

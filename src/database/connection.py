@@ -2,7 +2,8 @@
 Database connection and ORM models for the Intelligent Data Warehouse Orchestrator
 """
 
-from sqlalchemy import create_engine, MetaData, event
+from sqlalchemy import create_engine, MetaData, event, text
+from contextlib import asynccontextmanager
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import QueuePool
@@ -38,8 +39,9 @@ def get_db() -> Session:
     finally:
         db.close()
 
+@asynccontextmanager
 async def get_async_db() -> AsyncGenerator[asyncpg.Connection, None]:
-    """Get async database connection for high-performance operations"""
+    """Async context manager for database connection"""
     conn = await asyncpg.connect(DATABASE_URL)
     try:
         yield conn
@@ -72,7 +74,7 @@ def test_connection():
     """Test database connection"""
     try:
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            result = conn.execute(text("SELECT 1"))
             logger.info("Database connection successful")
             return True
     except Exception as e:

@@ -236,20 +236,81 @@ def render_overview_dashboard():
 def render_ai_optimization_dashboard():
     """AI-powered optimization dashboard"""
     st.markdown("### 🤖 AI-Powered Query Optimization")
-    
-    # Controls
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        time_window = st.selectbox("Analysis Time Window", ["Last 24 hours", "Last 7 days", "Last 30 days"])
-    with col2:
-        include_suggestions = st.checkbox("Generate AI Suggestions", value=True)
-    with col3:
-        if st.button("🔄 Run Analysis", type="primary"):
-            with st.spinner("🤖 AI is analyzing your queries..."):
-                st.success("Analysis completed! Found 23 optimization opportunities.")
-    
-    # AI Insights
-    st.markdown("#### 🧠 AI Insights & Recommendations")
+
+    # Keep SQL input in session state for easy replacement
+    default_sql = """SELECT o.customer_id, SUM(o.total_amount) AS revenue
+FROM orders o
+WHERE o.order_date >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY o.customer_id
+ORDER BY revenue DESC
+LIMIT 10"""
+    if "live_sql_input" not in st.session_state:
+        st.session_state["live_sql_input"] = default_sql
+
+    # Live query optimization (real API call to FastAPI backend)
+    st.markdown("#### ✨ Live Query Optimization (EXPLAIN by default)")
+    st.caption("Paste a SELECT/CTE query. We run EXPLAIN (safe) unless you enable EXPLAIN ANALYZE.")
+
+    sql_input = st.text_area("SQL to analyze", key="live_sql_input", height=200)
+    analyze = st.checkbox("Advanced: run EXPLAIN ANALYZE (executes the query)", value=False)
+
+    if st.button("🚀 Optimize This Query", type="primary"):
+        if not sql_input.strip():
+            st.warning("Please paste a SQL query.")
+        else:
+            with st.spinner("Running EXPLAIN and asking the AI for recommendations..."):
+                try:
+                    resp = requests.post(
+                        "http://localhost:8000/optimize/query",
+                        json={"sql": sql_input, "analyze": analyze},
+                        timeout=30,
+                    )
+                    if resp.status_code != 200:
+                        st.error(f"Request failed ({resp.status_code}): {resp.text}")
+                    else:
+                        data = resp.json()
+                        st.success("Optimization results ready!")
+
+                        st.markdown("**Execution Plan (JSON)**")
+                        st.json(data.get("plan", {}))
+
+                        st.markdown("**Schema Context (tables referenced)**")
+                        st.json(data.get("schema", {}))
+
+                        st.markdown("**AI Suggestions**")
+                        st.json(data.get("suggestions", {}))
+                except Exception as e:
+                    st.error(f"Error contacting optimizer: {e}")
+
+    # Recent workload from pg_stat_statements
+    st.divider()
+    st.markdown("#### 🔥 Recent Slow Queries (pg_stat_statements)")
+    st.caption("Pick one to populate the box above. Ordered by mean execution time.")
+
+    if st.button("📥 Load recent slow queries"):
+        with st.spinner("Fetching workload from backend..."):
+            try:
+                r = requests.get("http://localhost:8000/optimize/workload?limit=10", timeout=15)
+                if r.status_code != 200:
+                    st.error(f"Failed to load workload ({r.status_code}): {r.text}")
+                else:
+                    payload = r.json()
+                    queries = payload.get("queries", [])
+                    if not queries:
+                        st.info("No queries found yet. Run some queries to populate pg_stat_statements.")
+                    else:
+                        df = pd.DataFrame(queries)
+                        st.dataframe(df[["query", "mean_exec_time", "calls", "rows"]], use_container_width=True)
+                        for i, row in enumerate(queries):
+                            if st.button(f"Use query #{i+1}", key=f"use_query_{i}"):
+                                st.session_state["live_sql_input"] = row.get("query", "")
+                                st.success("Query loaded into the text box above.")
+                                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"Error fetching workload: {e}")
+
+    st.divider()
+    st.markdown("#### 🧠 AI Insights & Recommendations (sample)")
     
     insights_data = [
         {
