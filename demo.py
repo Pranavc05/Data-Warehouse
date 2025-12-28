@@ -6,7 +6,11 @@ This is a simplified demo showing core functionality.
 
 import os
 import sys
-import psycopg2
+try:
+    import psycopg2
+except ImportError:
+    print("⚠️ psycopg2 not available, using asyncpg for database connections")
+    psycopg2 = None
 from dotenv import load_dotenv
 import openai
 import json
@@ -18,6 +22,7 @@ class DataForgeDemo:
     def __init__(self):
         self.openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.db_connection = None
+        self._is_connected = False
         
     def test_database_connection(self):
         """Test PostgreSQL connection"""
@@ -142,7 +147,7 @@ Content: {json.dumps(alert, indent=2)}
         ai_status = self.test_ai_integration()
         
         # If basic components work, show advanced features
-        if self._is_connected and ai_status:
+        if db_status and ai_status:
             self.demo_sql_analysis()
             self.demo_streaming_mode()
             self.demo_email_system()
