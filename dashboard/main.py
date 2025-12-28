@@ -238,20 +238,14 @@ def render_ai_optimization_dashboard():
     st.markdown("### 🤖 AI-Powered Query Optimization")
 
     # Keep SQL input in session state for easy replacement
-    default_sql = """SELECT o.customer_id, SUM(o.total_amount) AS revenue
-FROM orders o
-WHERE o.order_date >= CURRENT_DATE - INTERVAL '30 days'
-GROUP BY o.customer_id
-ORDER BY revenue DESC
-LIMIT 10"""
     if "live_sql_input" not in st.session_state:
-        st.session_state["live_sql_input"] = default_sql
+        st.session_state["live_sql_input"] = ""
 
     # Live query optimization (real API call to FastAPI backend)
     st.markdown("#### ✨ Live Query Optimization (EXPLAIN by default)")
     st.caption("Paste a SELECT/CTE query. We run EXPLAIN (safe) unless you enable EXPLAIN ANALYZE.")
 
-    sql_input = st.text_area("SQL to analyze", key="live_sql_input", height=200)
+    sql_input = st.text_area("SQL to analyze", key="live_sql_input", height=200, placeholder="Paste a SELECT/CTE query here...")
     analyze = st.checkbox("Advanced: run EXPLAIN ANALYZE (executes the query)", value=False)
 
     if st.button("🚀 Optimize This Query", type="primary"):
