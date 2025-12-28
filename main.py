@@ -279,7 +279,7 @@ async def optimize_single_query(request: QueryOptimizationRequest):
                 performance_stats=json.dumps({"source": "explain_only", "analyze": request.analyze})
             )
             try:
-                ai_suggestions = json.loads(result)
+                ai_suggestions = parse_ai_output(result)
             except Exception as pe:
                 ai_suggestions = {"raw": result, "error": f"Failed to parse AI JSON: {pe}"}
         except Exception as e:
@@ -490,6 +490,21 @@ async def fetch_table_schema(conn, table_name: str) -> Dict:
         "columns": [dict(r) for r in columns],
         "indexes": [dict(r) for r in indexes],
     }
+
+def parse_ai_output(raw: str) -> Dict:
+    """
+    Parse AI output into JSON, stripping common code fences (```json ... ```).
+    Raises on failure so caller can wrap with fallback.
+    """
+    cleaned = raw.strip()
+    # Strip leading/trailing code fences if present
+    if cleaned.startswith("```"):
+        # Remove opening fence with optional language tag
+        cleaned = re.sub(r"^```[a-zA-Z0-9]*", "", cleaned, count=1).strip()
+        # Remove trailing fence if present
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3].strip()
+    return json.loads(cleaned)
 
 
 def generate_rule_based_suggestions(plan: Dict, sql: str, schema_info: Dict) -> Dict:
